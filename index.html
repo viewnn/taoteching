@@ -136,9 +136,6 @@
             margin-bottom:20px;
             color: var(--accent);
         }
-        .zhushi-text {
-            color: var(--text-sub);
-        }
         .page-nav {
             display:flex;
             justify-content:space-between;
@@ -284,6 +281,20 @@
 </div>
 
 <script>
+// 兼容性 polyfill（部分旧版 webview 不支持 NodeList.forEach / Array.from）
+if (!Array.prototype.forEach) {
+    Array.prototype.forEach = function(fn, ctx) {
+        for (var i = 0; i < this.length; i++) fn.call(ctx, this[i], i, this);
+    };
+}
+if (typeof NodeList !== 'undefined' && NodeList.prototype && !NodeList.prototype.forEach) {
+    NodeList.prototype.forEach = Array.prototype.forEach;
+}
+// 安全的 NodeList 遍历（避免 Array.from / forEach 兼容问题）
+function $each(sel, fn) {
+    var nl = document.querySelectorAll(sel);
+    for (var i = 0; i < nl.length; i++) fn(nl[i], i);
+}
 // 全局变量
 let bookData = [];
 let currentIndex = 0;
@@ -313,22 +324,25 @@ function saveProgress(){
 function renderCatalog(keyword){
     const kw = (keyword || "").trim().toLowerCase();
     catalogList.innerHTML = "";
-    bookData.forEach((item,i)=>{
+    for(let i = 0; i < bookData.length; i++){
+        const item = bookData[i];
         const haystack = (
             (item.chapter || "") + " " +
             (item.original || "") + " " +
             (item.translation || "")
         ).toLowerCase();
-        if(kw && haystack.indexOf(kw) === -1) return;
+        if(kw && haystack.indexOf(kw) === -1) continue;
         let div = document.createElement("div");
         div.className = "catalog-item";
         div.innerText = item.chapter;
-        div.onclick = ()=>{
-            switchChapter(i);
-            mask.classList.remove("show");
-        };
+        div.onclick = (function(idx){
+            return function(){
+                switchChapter(idx);
+                mask.classList.remove("show");
+            };
+        })(i);
         catalogList.appendChild(div);
-    });
+    }
     if(kw && catalogList.children.length === 0){
         catalogList.innerHTML = '<div class="loading-tip">未找到匹配章节</div>';
     }
@@ -357,7 +371,7 @@ function switchChapter(index){
     currentIndex = index;
     saveProgress();
     const data = bookData[currentIndex];
-    document.querySelectorAll(".chap-title").forEach(el=>el.innerText=data.chapter);
+    $each(".chap-title", function(el){ el.innerText = data.chapter; });
     document.querySelector(".yuanwen-text").innerHTML = textToHtml(data.original);
     document.querySelector(".zhushi-text").innerHTML = textToHtml(data.translation);
     document.querySelector(".zongjie-text").innerHTML = textToHtml(data.summary);
@@ -400,15 +414,51 @@ copyBtn.onclick = async () => {
 }
 
 // 标签切换
-document.querySelectorAll(".tab-item").forEach(tab=>{
+$each(".tab-item", function(tab){
     tab.onclick = function(){
-        document.querySelectorAll(".tab-item").forEach(t=>t.classList.remove("active"));
+        $each(".tab-item", function(t){ t.classList.remove("active"); });
         this.classList.add("active");
-        const viewId = this.dataset.view;
-        document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+        var viewId = this.dataset.view;
+        $each(".view", function(v){ v.classList.remove("active"); });
         document.getElementById(viewId).classList.add("active");
     }
-})
+});
+
+// 内容区域左右滑动切换tab
+// 左滑 -> 切换到左边的tab(前一个)；右滑 -> 切换到右边的tab(后一个)
+// 已在原文(最左)时无法左滑；已在总结(最右)时无法右滑
+(function(){
+    let startX = 0, startY = 0, startT = 0;
+    const threshold = 50;      // 最小水平滑动距离(px)
+    const maxDuration = 600;   // 滑动最大耗时(ms)
+    readWrap.addEventListener('touchstart', function(e){
+        const t = e.touches[0];
+        startX = t.clientX;
+        startY = t.clientY;
+        startT = Date.now();
+    }, { passive: true });
+    readWrap.addEventListener('touchend', function(e){
+        if(Date.now() - startT > maxDuration) return;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - startX;
+        const dy = t.clientY - startY;
+        if(Math.abs(dx) < threshold) return;            // 滑动距离不足
+        if(Math.abs(dx) < Math.abs(dy)) return;         // 垂直滑动为主，避免影响上下滚动
+        const tabs = document.querySelectorAll('.tab-item');
+        let idx = -1;
+        for(let i = 0; i < tabs.length; i++){
+            if(tabs[i].classList.contains('active')){ idx = i; break; }
+        }
+        if(idx < 0) return;
+        if(dx < 0){
+            // 左滑 -> 左边tab(前一个)
+            if(idx > 0) tabs[idx - 1].click();
+        } else {
+            // 右滑 -> 右边tab(后一个)
+            if(idx < tabs.length - 1) tabs[idx + 1].click();
+        }
+    }, { passive: true });
+})();
 
 // 日夜切换
 function toggleTheme(){
