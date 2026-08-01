@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>道德经阅读器</title>
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiRGVkYW9GaW5nIFJlYWRlciIsInNob3J0X25hbWUiOiLnlLXorr7nlLXorr7IiwiZGVzY3JpcHRpb24iOiLnlLXorr7nlLXorr7u4qvuuKIseS4reWbvSIsImJhY2tncm91bmRfY29sb3IiOiIjZmNmOGYwIiwidGhlbWVfY29sb3IiOiIjODMyMjIyIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJzdGFydF91cmwiOiIvIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOM00zSXlJc0luQjBaV1FkZ21acGJkVW5kRzl5TGM1em5qVnVpS0VpT2lKaGJHY2lPaUpTVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5Iiwic2l6ZXMiOiIxOTJ4MTkyIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV19">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            const swText = `
+            self.addEventListener('install', e => self.skipWaiting());
+            self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+            self.addEventListener('fetch', e => {
+                e.respondWith(fetch(e.request).catch(r => caches.match(e.request)));
+            });
+            `;
+            const blob = new Blob([swText], {type: 'application/javascript'});
+            navigator.serviceWorker.register(URL.createObjectURL(blob));
+        }
+    </script>
+    <style>
+        :root {
+            --bg: #fffbf0;
+            --card-bg: #ffffff;
+            --text-main: #222222;
+            --text-sub: #505050;
+            --border: #dddddd;
+            --accent: #8c2222;
+            --shadow: rgba(0,0,0,0.08);
+            --line-height: 1.80;
+            --content-font-size: 18px;
+        }
+        [data-theme="dark"] {
+            --bg: #171717;
+            --card-bg: #242424;
+            --text-main: #e8e8e8;
+            --text-sub: #b1b1b1;
+            --border: #383838;
+            --accent: #d46060;
+            --shadow: rgba(0,0,0,0.35);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: system-ui, -apple-system, "SimSun", "STSong", serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-size: 18px;
+            transition: background 0.3s ease, color 0.3s ease;
+            padding-bottom: 100px;
+        }
+        header {
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            z-index: 99;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 2px 6px var(--shadow);
+        }
+        .header-title {
+            font-size: 21px;
+            color: var(--accent);
+            font-weight: normal;
+        }
+        .toolbar {
+            display: flex;
+            gap: 6px;
+        }
+        button {
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text-main);
+            padding: 5px 9px;
+            border-radius: 7px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        button:active {
+            filter: brightness(0.92);
+        }
+        .container {
+            padding: 16px;
+            max-width: 720px;
+            margin: 0 auto;
+        }
+        .tab-wrap {
+            display:flex;
+            border:1px solid var(--border);
+            border-radius:9px;
+            overflow:hidden;
+            margin-bottom:16px;
+        }
+        .tab-item {
+            flex:1;
+            text-align:center;
+            padding:11px;
+            cursor:pointer;
+            background: var(--card-bg);
+            transition:0.2s;
+        }
+        .tab-item.active {
+            background: var(--accent);
+            color:#fff;
+        }
+        .content-card {
+            background: var(--card-bg);
+            padding:24px 20px;
+            border-radius:12px;
+            box-shadow: 0 3px 12px var(--shadow);
+            min-height:360px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        .read-content {
+            font-size: var(--content-font-size);
+            line-height: var(--line-height);
+        }
+        .view {
+            display:none;
+        }
+        .view.active {
+            display:block;
+        }
+        .chap-title {
+            text-align:center;
+            font-size:22px;
+            margin-bottom:20px;
+            color: var(--accent);
+        }
+        .zhushi-text {
+            color: var(--text-sub);
+        }
+        .page-nav {
+            display:flex;
+            justify-content:space-between;
+            margin-top:20px;
+        }
+        .setting-panel {
+            margin-top:16px;
+            background:var(--card-bg);
+            border-radius:10px;
+            padding:14px;
+            border:1px solid var(--border);
+        }
+        .setting-row {
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            padding:6px 0;
+            gap:10px;
+        }
+        .setting-label-line{
+            display:flex;
+            gap:8px;
+            align-items:center;
+        }
+        .value-text{
+            color:var(--accent);
+            min-width:42px;
+            text-align:right;
+        }
+        .mask {
+            position:fixed;
+            inset:0;
+            background:rgba(0,0,0,0.45);
+            z-index:199;
+            display:none;
+        }
+        .mask.show {display:block;}
+        .catalog-box {
+            position:fixed;
+            top:0;
+            right:0;
+            width:82%;
+            max-width:360px;
+            height:100%;
+            background:var(--bg);
+            padding:20px;
+        }
+        .catalog-list{
+            height: calc(100% - 60px);
+            overflow-y: auto;
+        }
+        .catalog-title {
+            display:flex;
+            justify-content:space-between;
+            font-size:20px;
+            margin-bottom:16px;
+            color:var(--accent);
+        }
+        .catalog-search {
+            margin-bottom:12px;
+        }
+        .catalog-search input {
+            width:100%;
+            padding:8px 10px;
+            border:1px solid var(--border);
+            border-radius:8px;
+            background:var(--card-bg);
+            color:var(--text-main);
+            font-size:15px;
+            outline:none;
+            transition:border-color 0.2s;
+        }
+        .catalog-search input:focus {
+            border-color:var(--accent);
+        }
+        .catalog-item {
+            padding:9px 6px;
+            border-bottom:1px solid var(--border);
+            cursor:pointer;
+        }
+        .catalog-item:active {
+            background:var(--card-bg);
+        }
+        .loading-tip{
+            text-align:center;
+            padding:40px 0;
+            color:var(--text-sub);
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-title">道德经</div>
+    <div class="toolbar">
+        <button id="openCatalog">目录</button>
+        <button onclick="toggleTheme()">🌓</button>
+    </div>
+</header>
+
+<div class="container">
+    <div class="tab-wrap">
+        <div class="tab-item active" data-view="yuanwen">原文</div>
+        <div class="tab-item" data-view="zhushi">注释</div>
+        <div class="tab-item" data-view="zongjie">总结</div>
+    </div>
+
+    <div class="content-card">
+        <div class="read-content" id="readWrap">
+            <div class="loading-tip">正在加载数据...</div>
+            <div class="view active" id="yuanwen">
+                <div class="chap-title"></div>
+                <div class="yuanwen-text"></div>
+            </div>
+            <div class="view" id="zhushi">
+                <div class="chap-title"></div>
+                <div class="zhushi-text"></div>
+            </div>
+            <div class="view" id="zongjie">
+                <div class="chap-title"></div>
+                <div class="zongjie-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-nav">
+        <button id="prevBtn">上一章</button>
+        <button id="copyBtn">复制原文</button>
+        <button id="nextBtn">下一章</button>
+    </div>
+</div>
+
+<div class="mask" id="mask">
+    <div class="catalog-box">
+        <div class="catalog-title">
+            <span>章节目录</span>
+            <button id="closeCatalog">✕</button>
+        </div>
+        <div class="catalog-search">
+            <input type="text" id="catalogSearch" placeholder="搜索章节标题或内容…">
+        </div>
+        <div id="catalogList"></div>
+    </div>
+</div>
+
+<script>
+// 全局变量
+let bookData = [];
+let currentIndex = 0;
+const storageKey = "daoDeJingReadIndex";
+
+const mask = document.getElementById("mask");
+const catalogList = document.getElementById("catalogList");
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+const readWrap = document.getElementById("readWrap");
+
+// 读取本地阅读记录
+function loadProgress() {
+    const save = localStorage.getItem(storageKey);
+    if(save !== null){
+        const idx = parseInt(save);
+        if(!isNaN(idx) && idx >=0 && idx < bookData.length){
+            currentIndex = idx;
+        }
+    }
+}
+function saveProgress(){
+    localStorage.setItem(storageKey, currentIndex);
+}
+
+// 渲染侧边目录（支持模糊搜索：匹配章节标题、原文、译文）
+function renderCatalog(keyword){
+    const kw = (keyword || "").trim().toLowerCase();
+    catalogList.innerHTML = "";
+    bookData.forEach((item,i)=>{
+        const haystack = (
+            (item.chapter || "") + " " +
+            (item.original || "") + " " +
+            (item.translation || "")
+        ).toLowerCase();
+        if(kw && haystack.indexOf(kw) === -1) return;
+        let div = document.createElement("div");
+        div.className = "catalog-item";
+        div.innerText = item.chapter;
+        div.onclick = ()=>{
+            switchChapter(i);
+            mask.classList.remove("show");
+        };
+        catalogList.appendChild(div);
+    });
+    if(kw && catalogList.children.length === 0){
+        catalogList.innerHTML = '<div class="loading-tip">未找到匹配章节</div>';
+    }
+}
+
+// 上下章按钮显隐控制
+function updateNavBtn(){
+    prevBtn.style.visibility = currentIndex <= 0 ? "hidden" : "visible";
+    nextBtn.style.visibility = currentIndex >= bookData.length -1 ? "hidden" : "visible";
+}
+
+// 将文本按 xlsx 中的真实换行符 \n 同步换行展示
+// 同时转义 HTML 特殊字符，避免数据中的 < > 被当作标签执行
+function textToHtml(s){
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\r\n/g, "\n")
+        .replace(/\r/g, "\n")
+        .replace(/\n/g, "<br>");
+}
+
+// 切换章节渲染内容（适配你的json字段）
+function switchChapter(index){
+    currentIndex = index;
+    saveProgress();
+    const data = bookData[currentIndex];
+    document.querySelectorAll(".chap-title").forEach(el=>el.innerText=data.chapter);
+    document.querySelector(".yuanwen-text").innerHTML = textToHtml(data.original);
+    document.querySelector(".zhushi-text").innerHTML = textToHtml(data.translation);
+    document.querySelector(".zongjie-text").innerHTML = textToHtml(data.summary);
+    updateNavBtn();
+}
+
+prevBtn.onclick = () => {
+    if(currentIndex > 0) switchChapter(currentIndex - 1);
+}
+nextBtn.onclick = () => {
+    if(currentIndex < bookData.length - 1) switchChapter(currentIndex + 1);
+}
+
+// 复制当前章节原文到剪贴板
+const copyBtn = document.getElementById("copyBtn");
+copyBtn.onclick = async () => {
+    if(!bookData.length) return;
+    const text = bookData[currentIndex].original || "";
+    const originalLabel = copyBtn.innerText;
+    try {
+        await navigator.clipboard.writeText(text);
+        copyBtn.innerText = "已复制";
+    } catch (err) {
+        // 兼容降级方案
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+            document.execCommand("copy");
+            copyBtn.innerText = "已复制";
+        } catch (e) {
+            copyBtn.innerText = "复制失败";
+        }
+        document.body.removeChild(ta);
+    }
+    setTimeout(()=>{ copyBtn.innerText = originalLabel; }, 1500);
+}
+
+// 标签切换
+document.querySelectorAll(".tab-item").forEach(tab=>{
+    tab.onclick = function(){
+        document.querySelectorAll(".tab-item").forEach(t=>t.classList.remove("active"));
+        this.classList.add("active");
+        const viewId = this.dataset.view;
+        document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+        document.getElementById(viewId).classList.add("active");
+    }
+})
+
+// 日夜切换
+function toggleTheme(){
+    if(document.body.dataset.theme === "dark"){
+        delete document.body.dataset.theme;
+    }else{
+        document.body.dataset.theme = "dark";
+    }
+}
+
+// 目录弹窗
+const catalogSearch = document.getElementById("catalogSearch");
+document.getElementById("openCatalog").onclick = ()=>{
+    mask.classList.add("show");
+    catalogSearch.value = "";
+    renderCatalog("");
+    setTimeout(()=>catalogSearch.focus(), 50);
+};
+document.getElementById("closeCatalog").onclick = ()=>mask.classList.remove("show");
+mask.onclick = (e)=>{
+    if(e.target === mask) mask.classList.remove("show");
+};
+catalogSearch.addEventListener("input", ()=>{
+    renderCatalog(catalogSearch.value);
+});
+
+// 加载外部book.xlsx 核心接入逻辑
+async function loadBookJson() {
+    try {
+        const res = await fetch("./book.xlsx");
+        if (!res.ok) throw new Error("xlsx文件读取失败，请检查文件路径");
+        const buf = await res.arrayBuffer();
+        const wb = XLSX.read(new Uint8Array(buf), { type: "array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rawArr = XLSX.utils.sheet_to_json(ws, { defval: "" });
+        // 过滤空行、空白章节
+        bookData = rawArr.filter(item => {
+            const ch = String(item.chapter || "");
+            return ch.trim() !== "";
+        });
+        // 确保4个字段存在（缺失时补空字符串）
+        bookData = bookData.map(item => ({
+            chapter: String(item.chapter || ""),
+            original: String(item.original || ""),
+            translation: String(item.translation || ""),
+            summary: String(item.summary || ""),
+        }));
+        // 清除加载提示
+        readWrap.innerHTML = `
+            <div class="view active" id="yuanwen">
+                <div class="chap-title"></div>
+                <div class="yuanwen-text"></div>
+            </div>
+            <div class="view" id="zhushi">
+                <div class="chap-title"></div>
+                <div class="zhushi-text"></div>
+            </div>
+            <div class="view" id="zongjie">
+                <div class="chap-title"></div>
+                <div class="zongjie-text"></div>
+            </div>
+        `;
+        // 初始化页面
+        loadProgress();
+        renderCatalog();
+        switchChapter(currentIndex);
+    } catch (err) {
+        readWrap.innerHTML = `<div class="loading-tip" style="color:#c33">数据加载失败：${err.message}<br>请确保html与book.xlsx放在同一文件夹，且SheetJS库已正常加载</div>`;
+        console.error("XLSX加载错误：", err);
+    }
+}
+
+// 页面启动加载xlsx
+loadBookJson();
+</script>
+</body>
+</html>
