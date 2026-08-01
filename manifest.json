@@ -1,0 +1,17 @@
+{
+  "name": "道德经阅读器",
+  "short_name": "道德经",
+  "description": "道德经原文、注释、总结",
+  "background_color": "#fcf8f0",
+  "theme_color": "#8c2222",
+  "display": "standalone",
+  "start_url": "./",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

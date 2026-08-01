@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>道德经阅读器</title>
-    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiRGVkYW9GaW5nIFJlYWRlciIsInNob3J0X25hbWUiOiLnlLXorr7nlLXorr7IiwiZGVzY3JpcHRpb24iOiLnlLXorr7nlLXorr7u4qvuuKIseS4reWbvSIsImJhY2tncm91bmRfY29sb3IiOiIjZmNmOGYwIiwidGhlbWVfY29sb3IiOiIjODMyMjIyIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJzdGFydF91cmwiOiIvIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOM00zSXlJc0luQjBaV1FkZ21acGJkVW5kRzl5TGM1em5qVnVpS0VpT2lKaGJHY2lPaUpTVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5Iiwic2l6ZXMiOiIxOTJ4MTkyIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV19">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="道德经">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
@@ -424,20 +429,22 @@ $each(".tab-item", function(tab){
     }
 });
 
-// 内容区域左右滑动切换tab
+// 内容区域左右滑动切换tab（整个内容卡片区域均可滑动）
 // 左滑 -> 切换到左边的tab(前一个)；右滑 -> 切换到右边的tab(后一个)
 // 已在原文(最左)时无法左滑；已在总结(最右)时无法右滑
 (function(){
+    const swipeArea = document.querySelector('.content-card');
+    if(!swipeArea) return;
     let startX = 0, startY = 0, startT = 0;
     const threshold = 50;      // 最小水平滑动距离(px)
     const maxDuration = 600;   // 滑动最大耗时(ms)
-    readWrap.addEventListener('touchstart', function(e){
+    swipeArea.addEventListener('touchstart', function(e){
         const t = e.touches[0];
         startX = t.clientX;
         startY = t.clientY;
         startT = Date.now();
     }, { passive: true });
-    readWrap.addEventListener('touchend', function(e){
+    swipeArea.addEventListener('touchend', function(e){
         if(Date.now() - startT > maxDuration) return;
         const t = e.changedTouches[0];
         const dx = t.clientX - startX;
