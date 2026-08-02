@@ -76,6 +76,19 @@
             color: var(--accent);
             font-weight: normal;
         }
+        .chapter-type {
+            display: inline-block;
+            padding: 2px 9px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--accent);
+            background: transparent;
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+        }
+        [data-theme="dark"] .chapter-type {
+            opacity: 0.9;
+        }
         .toolbar {
             display: flex;
             gap: 6px;
@@ -189,8 +202,37 @@
             padding:20px;
         }
         .catalog-list{
-            height: calc(100% - 60px);
+            height: calc(100% - 120px);
+            max-height: calc(100% - 120px);
             overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            padding-right: 6px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        .catalog-list::-webkit-scrollbar {
+            width: 8px;
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        .catalog-list::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+            border-radius: 4px;
+        }
+        .catalog-list::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
+            opacity: 1 !important;
+            min-height: 40px;
+        }
+        .catalog-list::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
+        }
+        .catalog-list::-webkit-scrollbar-thumb:vertical {
+            background-color: var(--accent);
+            border-radius: 4px;
         }
         .catalog-title {
             display:flex;
@@ -233,7 +275,10 @@
 </head>
 <body>
 <header>
-    <div class="header-title">道德经</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+        <div class="header-title">道德经</div>
+        <span id="chapterType" class="chapter-type"></span>
+    </div>
     <div class="toolbar">
         <button id="openCatalog">目录</button>
         <button onclick="toggleTheme()">🌓</button>
@@ -376,6 +421,8 @@ function switchChapter(index){
     currentIndex = index;
     saveProgress();
     const data = bookData[currentIndex];
+    const typeEl = document.getElementById("chapterType");
+    if(typeEl) typeEl.innerText = data.type || "";
     $each(".chap-title", function(el){ el.innerText = data.chapter; });
     document.querySelector(".yuanwen-text").innerHTML = textToHtml(data.original);
     document.querySelector(".zhushi-text").innerHTML = textToHtml(data.translation);
@@ -482,12 +529,46 @@ document.getElementById("openCatalog").onclick = ()=>{
     mask.classList.add("show");
     catalogSearch.value = "";
     renderCatalog("");
-    setTimeout(()=>catalogSearch.focus(), 50);
+    catalogList.scrollTop = 0;
 };
 document.getElementById("closeCatalog").onclick = ()=>mask.classList.remove("show");
 mask.onclick = (e)=>{
     if(e.target === mask) mask.classList.remove("show");
 };
+// 防止目录弹窗内的滑动被 mask / body 拦截（移动端穿透修复）
+(function(){
+    const box = document.querySelector('.catalog-box');
+    if(!box) return;
+    // 在目录容器内滑动时：阻止冒泡到 mask，但允许内部原生滚动
+    box.addEventListener('touchstart', function(e){
+        e.stopPropagation();
+    }, { passive: true });
+    box.addEventListener('touchmove', function(e){
+        e.stopPropagation();
+    }, { passive: true });
+    box.addEventListener('touchend', function(e){
+        e.stopPropagation();
+    }, { passive: true });
+    // mask 显示时锁定 body 滚动，避免和页面滚动冲突导致滚动失效
+    const lockBody = function(locked){
+        document.body.style.overflow = locked ? 'hidden' : '';
+        document.body.style.position = locked ? 'fixed' : '';
+        document.body.style.width = locked ? '100%' : '';
+    };
+    const _openCatalog = document.getElementById("openCatalog").onclick;
+    document.getElementById("openCatalog").onclick = function(){
+        _openCatalog.call(this);
+        lockBody(true);
+    };
+    const _closeCatalog = document.getElementById("closeCatalog").onclick;
+    document.getElementById("closeCatalog").onclick = function(){
+        _closeCatalog.call(this);
+        lockBody(false);
+    };
+    mask.addEventListener('click', function(e){
+        if(e.target === mask) lockBody(false);
+    });
+})();
 catalogSearch.addEventListener("input", ()=>{
     renderCatalog(catalogSearch.value);
 });
@@ -512,6 +593,7 @@ async function loadBookJson() {
             original: String(item.original || ""),
             translation: String(item.translation || ""),
             summary: String(item.summary || ""),
+            type: String(item.type || ""),
         }));
         // 清除加载提示
         readWrap.innerHTML = `
