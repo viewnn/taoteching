@@ -200,16 +200,20 @@
             height:100%;
             background:var(--bg);
             padding:20px;
+            display:flex;
+            flex-direction:column;
+            overflow:hidden;
         }
         .catalog-list{
-            height: calc(100% - 120px);
-            max-height: calc(100% - 120px);
-            overflow-y: auto;
-            overflow-x: hidden;
-            -webkit-overflow-scrolling: touch;
-            padding-right: 6px;
-            scrollbar-width: thin;
-            scrollbar-color: var(--border) transparent;
+            flex:1;
+            min-height:0;
+            overflow-y:auto;
+            overflow-x:hidden;
+            -webkit-overflow-scrolling:touch;
+            padding-right:6px;
+            scrollbar-width:thin;
+            scrollbar-color:var(--accent) transparent;
+            touch-action:pan-y;
         }
         .catalog-list::-webkit-scrollbar {
             width: 8px;
@@ -240,9 +244,11 @@
             font-size:20px;
             margin-bottom:16px;
             color:var(--accent);
+            flex-shrink:0;
         }
         .catalog-search {
             margin-bottom:12px;
+            flex-shrink:0;
         }
         .catalog-search input {
             width:100%;
@@ -326,7 +332,7 @@
         <div class="catalog-search">
             <input type="text" id="catalogSearch" placeholder="搜索章节标题或内容…">
         </div>
-        <div id="catalogList"></div>
+        <div id="catalogList" class="catalog-list"></div>
     </div>
 </div>
 
@@ -535,25 +541,10 @@ document.getElementById("closeCatalog").onclick = ()=>mask.classList.remove("sho
 mask.onclick = (e)=>{
     if(e.target === mask) mask.classList.remove("show");
 };
-// 防止目录弹窗内的滑动被 mask / body 拦截（移动端穿透修复）
+// 目录弹窗：打开时锁定背景滚动，关闭时恢复
 (function(){
-    const box = document.querySelector('.catalog-box');
-    if(!box) return;
-    // 在目录容器内滑动时：阻止冒泡到 mask，但允许内部原生滚动
-    box.addEventListener('touchstart', function(e){
-        e.stopPropagation();
-    }, { passive: true });
-    box.addEventListener('touchmove', function(e){
-        e.stopPropagation();
-    }, { passive: true });
-    box.addEventListener('touchend', function(e){
-        e.stopPropagation();
-    }, { passive: true });
-    // mask 显示时锁定 body 滚动，避免和页面滚动冲突导致滚动失效
     const lockBody = function(locked){
         document.body.style.overflow = locked ? 'hidden' : '';
-        document.body.style.position = locked ? 'fixed' : '';
-        document.body.style.width = locked ? '100%' : '';
     };
     const _openCatalog = document.getElementById("openCatalog").onclick;
     document.getElementById("openCatalog").onclick = function(){
