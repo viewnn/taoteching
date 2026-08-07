@@ -96,7 +96,7 @@ button:active {
 .tab-item {
     flex:1;
     text-align:center;
-    padding:11px;
+    padding:10px;
     cursor:pointer;
     background: var(--card-bg);
     transition:0.2s;
@@ -111,7 +111,8 @@ button:active {
     border-radius:12px;
     box-shadow: 0 3px 12px var(--shadow);
     min-height:360px;
-    max-height: 60vh;
+    /* max-height: 60vh; */
+    max-height: 360px;
     overflow-y: auto;
 }
 .link-card {
