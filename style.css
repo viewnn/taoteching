@@ -114,6 +114,24 @@ button:active {
     max-height: 60vh;
     overflow-y: auto;
 }
+.link-card {
+    margin-top:20px;
+    background: var(--bg);
+    padding:20px 20px; 
+    border-radius:12px;
+    box-shadow: 0 3px 12px var(--shadow);
+    min-height:100px;
+    overflow-y: auto;
+}
+.link-tab {
+    padding:14px 0;
+    font-size:16px;
+    color:var(--text-main);
+
+}
+.link-item {
+    padding:6px 0;
+}
 .read-content {
     font-size: var(--content-font-size);
     line-height: var(--line-height);
@@ -259,3 +277,28 @@ button:active {
     padding:40px 0;
     color:var(--text-sub);
 }
+
+.link-tab {
+    display: inline-block;
+    padding: 5px 10px;
+    font-size: 14px;
+    color: #fff;
+    background: var(--accent);
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+.link-item {
+    display: inline;
+    font-size: 15px;
+    cursor: pointer;
+    text-decoration: none;
+    line-height: 2;
+}
+
+.link-chapter {
+    display: inline;
+    color: #1681FF;
+    cursor: pointer;
+    text-decoration: none;
+}
+

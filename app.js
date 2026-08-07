@@ -83,6 +83,48 @@ function textToHtml(s){
         .replace(/\n/g, "<br>");
 }
 
+// 根据章节名查找索引（模糊匹配）
+function findChapterIndex(name) {
+    name = name.trim();
+    if(!name) return -1;
+    // 去掉括号中的序号，比如 "第二章（2）" -> "第二章"
+    const cleanName = name.replace(/（.*?）|\(.*?\)/g, "");
+    for(let i = 0; i < bookData.length; i++){
+        const ch = bookData[i].chapter.replace(/（.*?）|\(.*?\)/g, "");
+        if(ch === cleanName) return i;
+    }
+    return -1;
+}
+
+// 渲染相关章节链接（按"、"、"，"分割，每段可独立点击跳转）
+function renderLinkChapter(linkchapterStr) {
+    const el = document.getElementById("link");
+    if(!el) return;
+    const str = (linkchapterStr || "").trim();
+    if(!str) {
+        el.innerHTML = '<span style="color:var(--text-sub);">暂无相关章节</span>';
+        return;
+    }
+    const parts = str.split(/[、,，]/).map(function(s){ return s.trim(); }).filter(Boolean);
+    const html = parts.map(function(name, i) {
+        const idx = findChapterIndex(name);
+        const sep = i > 0 ? '<span style="color:var(--text-sub);">、</span>' : '';
+        if(idx >= 0) {
+            return sep + '<a class="link-chapter" href="javascript:void(0)" onclick="goToChapter(' + idx + ')">' + name + '</a>';
+        }
+        return sep + '<span class="link-chapter" style="color:var(--text-sub);">' + name + '</span>';
+    }).join('');
+    el.innerHTML = html;
+}
+
+// 跳转到指定章节（供相关章节链接调用）
+function goToChapter(idx){
+    if(idx >= 0 && idx < bookData.length){
+        switchChapter(idx);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
 // 切换章节渲染内容（适配你的json字段）
 function switchChapter(index){
     currentIndex = index;
@@ -94,6 +136,7 @@ function switchChapter(index){
     document.querySelector(".yuanwen-text").innerHTML = textToHtml(data.original);
     document.querySelector(".zhushi-text").innerHTML = textToHtml(data.translation);
     document.querySelector(".zongjie-text").innerHTML = textToHtml(data.summary);
+    renderLinkChapter(data.linkchapter);
     updateNavBtn();
 }
 
@@ -239,13 +282,14 @@ async function loadBookJson() {
             const ch = String(item.chapter || "");
             return ch.trim() !== "";
         });
-        // 确保4个字段存在（缺失时补空字符串）
+        // 确保所有字段存在（缺失时补空字符串）
         bookData = bookData.map(item => ({
             chapter: String(item.chapter || ""),
             original: String(item.original || ""),
             translation: String(item.translation || ""),
             summary: String(item.summary || ""),
             type: String(item.type || ""),
+            linkchapter: String(item.linkchapter || ""),
         }));
         // 清除加载提示
         readWrap.innerHTML = `
