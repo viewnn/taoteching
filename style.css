@@ -117,14 +117,14 @@ button:active {
 .link-card {
     margin-top:20px;
     background: var(--bg);
-    padding:20px 20px; 
+    padding:16px 20px; 
     border-radius:12px;
     box-shadow: 0 3px 12px var(--shadow);
-    min-height:100px;
+    min-height:80px;
     overflow-y: auto;
 }
 .link-tab {
-    padding:14px 0;
+    padding:8px 0;
     font-size:16px;
     color:var(--text-main);
 
@@ -280,11 +280,11 @@ button:active {
 
 .link-tab {
     display: inline-block;
-    padding: 5px 10px;
-    font-size: 14px;
-    color: #fff;
-    background: var(--accent);
-    border-radius: 4px;
+    padding: 4px 0px;
+    color: var(--text-main);
+    font-weight: bold;
+    /* background: var(--accent); */
+    /* border-radius: 4px; */
     margin-bottom: 10px;
 }
 .link-item {
