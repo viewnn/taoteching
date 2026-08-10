@@ -51,6 +51,27 @@ header {
     font-size: 21px;
     color: var(--accent);
     font-weight: normal;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    outline: none;
+    padding: 0 2px;
+    font-family: inherit;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+.book-select-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+.book-select-arrow {
+    color: var(--accent);
+    font-size: 13px;
+    pointer-events: none;
+    margin-left: -2px;
+    line-height: 1;
 }
 .chapter-type {
     display: inline-block;

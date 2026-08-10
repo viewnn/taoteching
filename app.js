@@ -15,17 +15,25 @@ function $each(sel, fn) {
 // 全局变量
 let bookData = [];
 let currentIndex = 0;
+let currentBook = "道德经";
 const storageKey = "daoDeJingReadIndex";
+const bookStorageKey = "daoDeJingBook";
+let wbCache = null;
+const bookDataCache = {};
 
 const mask = document.getElementById("mask");
 const catalogList = document.getElementById("catalogList");
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
 const readWrap = document.getElementById("readWrap");
+const bookSelect = document.getElementById("bookSelect");
 
-// 读取本地阅读记录
+// 读取本地阅读记录（按书分别存储）
+function getProgressKey() {
+    return storageKey + "_" + currentBook;
+}
 function loadProgress() {
-    const save = localStorage.getItem(storageKey);
+    const save = localStorage.getItem(getProgressKey());
     if(save !== null){
         const idx = parseInt(save);
         if(!isNaN(idx) && idx >=0 && idx < bookData.length){
@@ -34,7 +42,7 @@ function loadProgress() {
     }
 }
 function saveProgress(){
-    localStorage.setItem(storageKey, currentIndex);
+    localStorage.setItem(getProgressKey(), currentIndex);
 }
 
 // 渲染侧边目录（支持模糊搜索：匹配章节标题、原文、译文）
@@ -87,7 +95,12 @@ function textToHtml(s){
 function findChapterIndex(name) {
     name = name.trim();
     if(!name) return -1;
-    // 去掉括号中的序号，比如 "第二章（2）" -> "第二章"
+    // 1. 先尝试精确匹配（保留括号内容，区分 3-1、3-2 等子节）
+    for(let i = 0; i < bookData.length; i++){
+        if(bookData[i].chapter === name) return i;
+    }
+    // 2. 精确匹配失败，再去掉括号中的序号进行模糊匹配
+    //    比如 linkchapter 写 "第二章"，数据中是 "第二章（2）"
     const cleanName = name.replace(/（.*?）|\(.*?\)/g, "");
     for(let i = 0; i < bookData.length; i++){
         const ch = bookData[i].chapter.replace(/（.*?）|\(.*?\)/g, "");
@@ -102,7 +115,7 @@ function renderLinkChapter(linkchapterStr) {
     if(!el) return;
     const str = (linkchapterStr || "").trim();
     if(!str) {
-        el.innerHTML = '<span style="color:var(--text-sub);">暂无相关章节</span>';
+        el.innerHTML = '<span style="color:var(--text-sub);">暂无</span>';
         return;
     }
     const parts = str.split(/[、,，]/).map(function(s){ return s.trim(); }).filter(Boolean);
@@ -145,6 +158,12 @@ prevBtn.onclick = () => {
 }
 nextBtn.onclick = () => {
     if(currentIndex < bookData.length - 1) switchChapter(currentIndex + 1);
+}
+// 书籍下拉切换
+if(bookSelect){
+    bookSelect.addEventListener("change", function(){
+        switchBook(this.value);
+    });
 }
 
 // 复制当前章节原文到剪贴板
@@ -268,29 +287,81 @@ catalogSearch.addEventListener("input", ()=>{
     renderCatalog(catalogSearch.value);
 });
 
+// 解析单个sheet为统一的bookData结构
+function parseSheet(wb, sheetName) {
+    const ws = wb.Sheets[sheetName];
+    if(!ws) return [];
+    const rawArr = XLSX.utils.sheet_to_json(ws, { defval: "" });
+    // 过滤空行、空白章节
+    let data = rawArr.filter(item => {
+        const ch = String(item.chapter || "");
+        return ch.trim() !== "";
+    });
+    // 确保所有字段存在（缺失时补空字符串）
+    data = data.map(item => ({
+        chapter: String(item.chapter || ""),
+        original: String(item.original || ""),
+        translation: String(item.translation || ""),
+        summary: String(item.summary || ""),
+        type: String(item.type || ""),
+        linkchapter: String(item.linkchapter || ""),
+    }));
+    return data;
+}
+
+// 加载指定书籍的数据（带缓存）
+function loadBookData(bookName) {
+    if(!wbCache) return;
+    if(bookDataCache[bookName]) {
+        bookData = bookDataCache[bookName];
+        return;
+    }
+    bookDataCache[bookName] = parseSheet(wbCache, bookName);
+    bookData = bookDataCache[bookName];
+}
+
+// 切换书籍
+function switchBook(bookName) {
+    if(!wbCache || wbCache.SheetNames.indexOf(bookName) < 0) return;
+    if(bookName === currentBook) return;
+    currentBook = bookName;
+    localStorage.setItem(bookStorageKey, currentBook);
+    currentIndex = 0;
+    loadBookData(currentBook);
+    // 切换书籍后重置目录搜索框
+    if(catalogSearch) catalogSearch.value = "";
+    loadProgress();
+    renderCatalog();
+    switchChapter(currentIndex);
+}
+
 // 加载外部book.xlsx 核心接入逻辑
 async function loadBookJson() {
     try {
         const res = await fetch("./book.xlsx");
         if (!res.ok) throw new Error("xlsx文件读取失败，请检查文件路径");
         const buf = await res.arrayBuffer();
-        const wb = XLSX.read(new Uint8Array(buf), { type: "array" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const rawArr = XLSX.utils.sheet_to_json(ws, { defval: "" });
-        // 过滤空行、空白章节
-        bookData = rawArr.filter(item => {
-            const ch = String(item.chapter || "");
-            return ch.trim() !== "";
-        });
-        // 确保所有字段存在（缺失时补空字符串）
-        bookData = bookData.map(item => ({
-            chapter: String(item.chapter || ""),
-            original: String(item.original || ""),
-            translation: String(item.translation || ""),
-            summary: String(item.summary || ""),
-            type: String(item.type || ""),
-            linkchapter: String(item.linkchapter || ""),
-        }));
+        wbCache = XLSX.read(new Uint8Array(buf), { type: "array" });
+        // 填充书籍下拉选项
+        if(bookSelect){
+            bookSelect.innerHTML = "";
+            wbCache.SheetNames.forEach(function(name){
+                const opt = document.createElement("option");
+                opt.value = name;
+                opt.textContent = name;
+                bookSelect.appendChild(opt);
+            });
+            // 恢复上次选择的书籍
+            const savedBook = localStorage.getItem(bookStorageKey);
+            if(savedBook && wbCache.SheetNames.indexOf(savedBook) >= 0) {
+                currentBook = savedBook;
+            } else {
+                currentBook = wbCache.SheetNames[0] || currentBook;
+            }
+            bookSelect.value = currentBook;
+        }
+        // 加载当前书籍数据
+        loadBookData(currentBook);
         // 清除加载提示
         readWrap.innerHTML = `
             <div class="view active" id="yuanwen">
