@@ -99,7 +99,13 @@ function findChapterIndex(name) {
     for(let i = 0; i < bookData.length; i++){
         if(bookData[i].chapter === name) return i;
     }
-    // 2. 精确匹配失败，再去掉括号中的序号进行模糊匹配
+    // 2. 纯数字匹配 no 列（如 linkchapter 写 "11"，对应 no=11 的章节）
+    if(/^\d+$/.test(name)) {
+        for(let i = 0; i < bookData.length; i++){
+            if(String(bookData[i].no || "") === name) return i;
+        }
+    }
+    // 3. 去掉括号中的序号进行模糊匹配
     //    比如 linkchapter 写 "第二章"，数据中是 "第二章（2）"
     const cleanName = name.replace(/（.*?）|\(.*?\)/g, "");
     for(let i = 0; i < bookData.length; i++){
@@ -299,6 +305,7 @@ function parseSheet(wb, sheetName) {
     });
     // 确保所有字段存在（缺失时补空字符串）
     data = data.map(item => ({
+        no: String(item.no || ""),
         chapter: String(item.chapter || ""),
         original: String(item.original || ""),
         translation: String(item.translation || ""),
