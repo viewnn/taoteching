@@ -54,18 +54,12 @@ self.addEventListener('fetch', e => {
             // 先用归一化 URL 查缓存
             caches.match(normalizedRequest).then(cached => {
                 // 后台静默更新：用原始请求（带时间戳）从网络获取最新版
+                // 仅更新缓存供离线使用，不通知客户端（app.js 已通过时间戳获取最新数据）
                 fetch(e.request).then(response => {
                     if (response && response.status === 200 && response.type === 'basic') {
                         const clone = response.clone();
-                        // 用归一化 URL 存入缓存，保持单条缓存记录
                         caches.open(CACHE_NAME).then(cache => {
                             cache.put(normalizedRequest, clone);
-                        });
-                        // 通知客户端缓存已更新
-                        self.clients.matchAll({ type: 'window' }).then(clients => {
-                            clients.forEach(client => {
-                                client.postMessage({ type: 'cache-updated' });
-                            });
                         });
                     }
                 }).catch(() => {});

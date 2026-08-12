@@ -293,15 +293,7 @@ catalogSearch.addEventListener("input", ()=>{
     renderCatalog(catalogSearch.value);
 });
 
-// 监听 SW 缓存更新通知，提示用户刷新
-if('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', function(e){
-        if(e.data && e.data.type === 'cache-updated') {
-            showUpdateTip();
-        }
-    });
-}
-// 页面加载完成后检查是否有新版本 SW 可用
+// 监听 SW 更新，新 SW 激活后自动刷新页面
 if('serviceWorker' in navigator) {
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', function(){
@@ -309,20 +301,6 @@ if('serviceWorker' in navigator) {
             refreshing = true;
             location.reload();
         }
-    });
-}
-
-// 显示"内容已更新"提示
-function showUpdateTip() {
-    if(document.getElementById('_updateTip')) return;
-    const tip = document.createElement('div');
-    tip.id = '_updateTip';
-    tip.innerHTML = '内容已更新，<span id="_updateTipBtn" style="cursor:pointer;text-decoration:underline;">点击刷新</span>';
-    tip.style.cssText = 'position:fixed;top:0;left:0;right:0;background:var(--accent,#8c2222);color:#fff;text-align:center;padding:10px;font-size:14px;z-index:9999;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);';
-    document.body.appendChild(tip);
-    tip.addEventListener('click', function(){
-        tip.remove();
-        location.reload();
     });
 }
 
