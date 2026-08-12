@@ -293,6 +293,39 @@ catalogSearch.addEventListener("input", ()=>{
     renderCatalog(catalogSearch.value);
 });
 
+// 监听 SW 缓存更新通知，提示用户刷新
+if('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', function(e){
+        if(e.data && e.data.type === 'cache-updated') {
+            showUpdateTip();
+        }
+    });
+}
+// 页面加载完成后检查是否有新版本 SW 可用
+if('serviceWorker' in navigator) {
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function(){
+        if(!refreshing) {
+            refreshing = true;
+            location.reload();
+        }
+    });
+}
+
+// 显示"内容已更新"提示
+function showUpdateTip() {
+    if(document.getElementById('_updateTip')) return;
+    const tip = document.createElement('div');
+    tip.id = '_updateTip';
+    tip.innerHTML = '内容已更新，<span id="_updateTipBtn" style="cursor:pointer;text-decoration:underline;">点击刷新</span>';
+    tip.style.cssText = 'position:fixed;top:0;left:0;right:0;background:var(--accent,#8c2222);color:#fff;text-align:center;padding:10px;font-size:14px;z-index:9999;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);';
+    document.body.appendChild(tip);
+    tip.addEventListener('click', function(){
+        tip.remove();
+        location.reload();
+    });
+}
+
 // 解析单个sheet为统一的bookData结构
 function parseSheet(wb, sheetName) {
     const ws = wb.Sheets[sheetName];
@@ -345,7 +378,8 @@ function switchBook(bookName) {
 // 加载外部book.xlsx 核心接入逻辑
 async function loadBookJson() {
     try {
-        const res = await fetch("./book.xlsx");
+        // 加时间戳绕过 SW 缓存，确保每次刷新都能获取最新 xlsx 数据
+        const res = await fetch("./book.xlsx?_=" + Date.now());
         if (!res.ok) throw new Error("xlsx文件读取失败，请检查文件路径");
         const buf = await res.arrayBuffer();
         wbCache = XLSX.read(new Uint8Array(buf), { type: "array" });
