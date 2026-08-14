@@ -137,12 +137,12 @@ button:active {
     overflow-y: auto;
 }
 .link-card {
-    margin-top:20px;
+    margin-top:16px;
     background: var(--bg);
     padding:16px 20px; 
     border-radius:12px;
     box-shadow: 0 3px 12px var(--shadow);
-    min-height:80px;
+    min-height:60px;
     overflow-y: auto;
 }
 .link-tab {
@@ -173,7 +173,7 @@ button:active {
 .page-nav {
     display:flex;
     justify-content:space-between;
-    margin-top:20px;
+    margin-top:16px;
 }
 .content-nav {
     font-size: 14px;

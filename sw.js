@@ -1,5 +1,5 @@
 // 道德经阅读器 Service Worker — 离线缓存
-const CACHE_NAME = 'ddj-reader-v4';
+const CACHE_NAME = 'ddj-reader-v4.1';
 const APP_SHELL = [
     './',
     './index.html',
