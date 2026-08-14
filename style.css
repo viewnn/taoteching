@@ -128,12 +128,12 @@ button:active {
 }
 .content-card {
     background: var(--bg);
-    padding:24px 20px;
+    padding:20px 20px;
     border-radius:12px;
     box-shadow: 0 3px 12px var(--shadow);
-    min-height:380px;
+    min-height:400px;
     /* max-height: 60vh; */
-    max-height: 380px;
+    max-height: 400px;
     overflow-y: auto;
 }
 .link-card {
@@ -166,8 +166,8 @@ button:active {
 }
 .chap-title {
     text-align:center;
-    font-size:22px;
-    margin-bottom:20px;
+    font-size:20px;
+    margin-bottom:10px;
     color: var(--accent);
 }
 .page-nav {
